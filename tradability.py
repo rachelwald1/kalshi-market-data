@@ -1,23 +1,13 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 import math
-
-
-# ============================================================
-# Helper utilities
-# ============================================================
-
-def as_int(x: Any, default: int = 0) -> int:
-    """
-    Safely convert API values to int.
-    Kalshi fields may be None or strings.
-    """
-    try:
-        return int(x)
-    except (TypeError, ValueError):
-        return default
+from microstructure import (
+    yes_bid, yes_ask, no_bid, no_ask,
+    has_yes_book, has_no_book,
+    mid_yes, spread_yes,
+    volume, open_interest,
+)
 
 
 def clamp(x: float, lo: float, hi: float) -> float:
@@ -26,75 +16,6 @@ def clamp(x: float, lo: float, hi: float) -> float:
     Used to keep component scores bounded.
     """
     return max(lo, min(hi, x))
-
-
-# ============================================================
-# Raw field accessors (single responsibility)
-# ============================================================
-
-def yes_bid(m: Dict[str, Any]) -> int:
-    return as_int(m.get("yes_bid"))
-
-
-def yes_ask(m: Dict[str, Any]) -> int:
-    return as_int(m.get("yes_ask"))
-
-
-def no_bid(m: Dict[str, Any]) -> int:
-    return as_int(m.get("no_bid"))
-
-
-def no_ask(m: Dict[str, Any]) -> int:
-    return as_int(m.get("no_ask"))
-
-
-def volume(m: Dict[str, Any]) -> int:
-    """Total traded volume so far (historical activity)."""
-    return as_int(m.get("volume"))
-
-
-def open_interest(m: Dict[str, Any]) -> int:
-    """Number of outstanding contracts (current participation)."""
-    return as_int(m.get("open_interest"))
-
-
-# ============================================================
-# Microstructure checks
-# ============================================================
-
-def has_yes_book(m: Dict[str, Any]) -> bool:
-    """
-    True if the YES side has both bid and ask.
-    This implies you can both enter and exit YES positions visibly.
-    """
-    return yes_bid(m) > 0 and yes_ask(m) > 0
-
-
-def has_no_book(m: Dict[str, Any]) -> bool:
-    """
-    Same logic as YES book, but for NO contracts.
-    """
-    return no_bid(m) > 0 and no_ask(m) > 0
-
-
-def mid_yes(m: Dict[str, Any]) -> Optional[float]:
-    """
-    Midpoint of YES bid/ask.
-    Used as a rough probability proxy when liquidity exists.
-    """
-    if not has_yes_book(m):
-        return None
-    return (yes_bid(m) + yes_ask(m)) / 2.0
-
-
-def spread_yes(m: Dict[str, Any]) -> Optional[int]:
-    """
-    Absolute YES bid–ask spread in cents.
-    Represents guaranteed round-trip cost.
-    """
-    if not has_yes_book(m):
-        return None
-    return yes_ask(m) - yes_bid(m)
 
 
 def rel_spread_yes(m: Dict[str, Any]) -> Optional[float]:

@@ -1,6 +1,7 @@
 import requests
 import csv
 import time
+from tradability import tradability_score
 
 # Kalshi API endpoint for market data
 URL = "https://api.elections.kalshi.com/trade-api/v2/markets"
@@ -51,3 +52,30 @@ with open("kalshi_markets.csv", "w", newline="") as f:
                 market.get("open_interest"),        # Open contracts
                 market.get("last_trade_price"),     # Most recent execution price
             ])
+            
+def simplify_title(title: str, max_items: int = 3) -> str:
+    parts = [p.strip() for p in title.split(",")]
+    if len(parts) <= max_items:
+        return title
+    return ", ".join(parts[:max_items]) + f", … (+{len(parts) - max_items} more)"
+        
+markets = data["markets"]
+
+# Score every market
+for market in markets:
+    score = tradability_score(market)
+    market["tradability_score"] = score
+
+# Sort by score
+ranked = sorted(
+    markets,
+    key=lambda m: m["tradability_score"],
+    reverse=True
+)
+
+# Create a list of only tradable markets
+tradable = [m for m in ranked if m["tradability_score"] >= 50]
+
+for m in tradable[:20]:
+    title = simplify_title(m['title'])
+    print(f"{m['tradability_score']:3d}  {title}")

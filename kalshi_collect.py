@@ -3,7 +3,7 @@ import csv
 import time
 
 # Kalshi API endpoint for market data
-URL = "https://api.kalshi.com/trade-api/v2/markets"
+URL = "https://api.elections.kalshi.com/trade-api/v2/markets"
 
 # Request all currently open markets from Kalshi
 response = requests.get(URL, params={"status": "open"})
@@ -17,23 +17,37 @@ with open("kalshi_markets.csv", "w", newline="") as f:
     writer.writerow([
         "timestamp",
         "ticker",
+        "title",
+        "event_ticker",
+        "category",
+        "status",
+        "close_time",
         "yes_bid",
         "yes_ask",
         "no_bid",
         "no_ask",
         "volume",
-        "open_interest"
+        "open_interest",
+        "last_trade_price",
     ])
 
     # Loop through each market returned by the API
     for market in data["markets"]:
-        writer.writerow([
-            time.time(),                  # Time data was collected
-            market["ticker"],             # Unique market identifier
-            market["yes_bid"],            # Best bid for YES
-            market["yes_ask"],            # Best ask for YES
-            market["no_bid"],             # Best bid for NO
-            market["no_ask"],             # Best ask for NO
-            market["volume"],             # Total traded volume
-            market["open_interest"]       # Open contracts
-        ])
+        # Skip illiquid markets (no YES-side orders)
+        if (market.get("yes_bid", 0) > 0 or market.get("yes_ask", 0) > 0):
+            writer.writerow([
+                time.time(),                        # Time data was collected
+                market.get("ticker"),               # Unique market identifier
+                market.get("title"),                # Human-readable description
+                market.get("event_ticker"),         # Parent event
+                market.get("category"),             # Market category
+                market.get("status"),               # Market status
+                market.get("close_time"),           # Expiry timestamp
+                market.get("yes_bid"),              # Best bid for YES
+                market.get("yes_ask"),              # Best ask for YES
+                market.get("no_bid"),               # Best bid for NO
+                market.get("no_ask"),               # Best ask for NO
+                market.get("volume"),               # Total traded volume
+                market.get("open_interest"),        # Open contracts
+                market.get("last_trade_price"),     # Most recent execution price
+            ])

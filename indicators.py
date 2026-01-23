@@ -78,7 +78,7 @@ def _normalize_price_to_prob(x: pd.Series) -> pd.Series:
     This keeps your code robust even if your collector changes format later.
     """
     x = _to_numeric(x)
-    # If > 1.5, assume cents (e.g. 63 means 63 cents -> 0.63)
+    # If > 1.5 (would be > 1.0 but noise could make it 1.001), assume cents (e.g. 63 means 63 cents -> 0.63)
     return np.where(x > 1.5, x / 100.0, x).astype(float)
 
 
@@ -129,15 +129,18 @@ def _rel_spread(mid: pd.Series, spread: pd.Series) -> pd.Series:
 
 def _zscore(series: pd.Series, window: int) -> pd.Series:
     """
-    Rolling z-score: (x - rolling_mean) / rolling_std.
-    Uses past window observations; min_periods=window for stability.
+    Rolling z-score (time-adaptive normalisation):
+    - Uses a sliding window of the last `window` observations
+    - Computes rolling mean and standard deviation
+    - Returns (x - rolling_mean) / rolling_std
+    - NaN until enough history exists (min_periods = window)
     """
     s = _to_numeric(series)
     mu = s.rolling(window, min_periods=window).mean()
     sd = s.rolling(window, min_periods=window).std()
     return (s - mu) / sd
 
-
+## HERE
 def _rolling_vol(delta_series: pd.Series, window: int) -> pd.Series:
     """
     Rolling volatility of returns/differences (std of delta).

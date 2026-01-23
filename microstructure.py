@@ -31,6 +31,19 @@ def spread_yes(m: Dict[str, Any]) -> Optional[int]:
         return None
     return yes_ask(m) - yes_bid(m)
 
+def has_no_book(m: Dict[str, Any]) -> bool:
+    return no_bid(m) > 0 and no_ask(m) > 0
+
+def mid_no(m: Dict[str, Any]) -> Optional[float]:
+    if not has_no_book(m):
+        return None
+    return (no_bid(m) + no_ask(m)) / 2.0
+
+def spread_no(m: Dict[str, Any]) -> Optional[int]:
+    if not has_no_book(m):
+        return None
+    return no_ask(m) - no_bid(m)
+
 def volume(m: Dict[str, Any]) -> int:
     return as_int(m.get("volume"))
 

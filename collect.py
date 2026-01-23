@@ -7,10 +7,12 @@ from tradability import tradability_score
 URL = "https://api.elections.kalshi.com/trade-api/v2/markets"
 
 # Request all currently open markets from Kalshi
-response = requests.get(URL, params={"status": "open"})
+response = requests.get(URL, params={"status": "open"}, timeout=20)
+response.raise_for_status()
 data = response.json()
 
 # Open a CSV file to store market data
+ts = time.time()
 with open("kalshi_markets.csv", "w", newline="") as f:
     writer = csv.writer(f)
 
@@ -34,10 +36,13 @@ with open("kalshi_markets.csv", "w", newline="") as f:
 
     # Loop through each market returned by the API
     for market in data["markets"]:
-        # Skip illiquid markets (no YES-side orders)
-        if (market.get("yes_bid", 0) > 0 or market.get("yes_ask", 0) > 0):
+        # Skip illiquid markets (no YES-side orders or NO-side orders)
+        if (
+            market.get("yes_bid", 0) > 0 or market.get("yes_ask", 0) > 0 or
+            market.get("no_bid", 0) > 0  or market.get("no_ask", 0) > 0
+        ):      
             writer.writerow([
-                time.time(),                        # Time data was collected
+                ts,                                 # Time data was collected
                 market.get("ticker"),               # Unique market identifier
                 market.get("title"),                # Human-readable description
                 market.get("event_ticker"),         # Parent event
@@ -54,6 +59,8 @@ with open("kalshi_markets.csv", "w", newline="") as f:
             ])
             
 def simplify_title(title: str, max_items: int = 3) -> str:
+    if not title:
+        return "<no title>"
     parts = [p.strip() for p in title.split(",")]
     if len(parts) <= max_items:
         return title
@@ -77,5 +84,5 @@ ranked = sorted(
 tradable = [m for m in ranked if m["tradability_score"] >= 50]
 
 for m in tradable[:20]:
-    title = simplify_title(m['title'])
+    title = simplify_title(m.get("title") or "")
     print(f"{m['tradability_score']:3d}  {title}")

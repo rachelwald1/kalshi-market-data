@@ -79,7 +79,7 @@ def _normalize_price_to_prob(x: pd.Series) -> pd.Series:
     """
     x = _to_numeric(x)
     # If > 1.5 (would be > 1.0 but noise could make it 1.001), assume cents (e.g. 63 means 63 cents -> 0.63)
-    return np.where(x > 1.5, x / 100.0, x).astype(float)
+    return x.where(x <= 1.5, x / 100.0).astype(float)
 
 
 def _has_book(bid: pd.Series, ask: pd.Series) -> pd.Series:
@@ -140,7 +140,7 @@ def _zscore(series: pd.Series, window: int) -> pd.Series:
     sd = s.rolling(window, min_periods=window).std()
     return (s - mu) / sd
 
-## HERE
+
 def _rolling_vol(delta_series: pd.Series, window: int) -> pd.Series:
     """
     Rolling volatility of returns/differences (std of delta).
